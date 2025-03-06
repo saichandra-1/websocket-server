@@ -15,8 +15,15 @@ io.on("connection", (socket) => {
   console.log("✅ WebSocket connection succeeded");
 
   socket.on("hello", (message) => {
-    console.log("📩 Received from client:", message);
-    socket.emit("world", "Server response: " + message);
+    console.log("Received chat message:", message);
+    const useridandmessage = message.split("2@2@3#1!");
+    const userid =useridandmessage[0];
+    if(useridandmessage.length>1){
+      const remainingmessage = useridandmessage[1];
+      if(remainingmessage){
+        io.emit("world", `${userid} : ${remainingmessage}`); 
+      }
+    }
   });
 
   socket.on("disconnect", () => {
