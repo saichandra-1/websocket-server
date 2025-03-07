@@ -12,22 +12,22 @@ const io = new Server(httpServer, {
 });
 
 io.on("connection", (socket) => {
-  console.log("✅ WebSocket connection succeeded");
-
+  console.log("WebSocket connection succeeded");
+  
+  // Listen for "hello" messages from clients
   socket.on("hello", (message) => {
-    console.log("Received chat message:", message);
-    const useridandmessage = message.split("2@2@3#1!");
-    const userid =useridandmessage[0];
-    if(useridandmessage.length>1){
+    const useridandmessage = message.split("#1!2@$");
+    const userid = useridandmessage[0];
+    if(useridandmessage.length > 1){
       const remainingmessage = useridandmessage[1];
       if(remainingmessage){
-        io.emit("world", `${userid} : ${remainingmessage}`); 
+        io.emit("world", `${userid}#1!2@$${remainingmessage}`); 
       }
     }
   });
 
   socket.on("disconnect", () => {
-    console.log("❌ Client disconnected");
+    console.log("User disconnected");
   });
 });
 
