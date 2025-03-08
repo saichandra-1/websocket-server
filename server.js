@@ -2,17 +2,24 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 
 const port = process.env.PORT || 3001;  // Use dynamic port for deployment
-
+const connectedUsers = new Map();
 const httpServer = createServer();
 const io = new Server(httpServer, {
   cors: {
-    origin: "*",  // Allow all origins (for testing, secure this later)
+    origin: "*",  // Allow all origins (for testing, secure this  later)
     methods: ["GET", "POST"]
   }
 });
 
 io.on("connection", (socket) => {
   console.log("WebSocket connection succeeded");
+
+  socket.on("user_joined", (data) => {
+    const { userId } = data;
+    connectedUsers.set(socket.id, userId);
+
+    io.emit("user_count", connectedUsers.size);
+  });
   
   // Listen for "hello" messages from clients
   socket.on("hello", (message) => {
@@ -27,6 +34,8 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
+    connectedUsers.delete(socket.id);
+    io.emit("user_count", connectedUsers.size);
     console.log("User disconnected");
   });
 });
