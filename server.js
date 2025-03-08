@@ -2,7 +2,9 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 
 const port = process.env.PORT || 3001;  // Use dynamic port for deployment
-const connectedUsers = new Map();
+const userSocketMap = new Map();
+const socketUserMap = new Map();
+
 const httpServer = createServer();
 const io = new Server(httpServer, {
   cors: {
@@ -14,11 +16,20 @@ const io = new Server(httpServer, {
 io.on("connection", (socket) => {
   console.log("WebSocket connection succeeded");
 
-  socket.on("user_joined", (data) => {
+  socket.on("user_joined", (data) => {  
     const { userId } = data;
-    connectedUsers.set(socket.id, userId);
+    
+    // Track this socket for this user
+    if (!userSocketMap.has(userId)) {
+      userSocketMap.set(userId, new Set());
+    }
+    userSocketMap.get(userId).add(socket.id);
+    
+    // Also save reverse mapping for quick lookup on disconnect
+    socketUserMap.set(socket.id, userId);
 
-    io.emit("user_count", connectedUsers.size);
+    // Emit the count of unique users (not socket connections)
+    io.emit("user_count", userSocketMap.size);
   });
   
   // Listen for "hello" messages from clients
@@ -34,8 +45,26 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
-    connectedUsers.delete(socket.id);
-    io.emit("user_count", connectedUsers.size);
+    // Get the userId for this socket
+    const userId = socketUserMap.get(socket.id);
+    
+    if (userId) {
+      // Remove this socket from the user's set of sockets
+      const userSockets = userSocketMap.get(userId);
+      userSockets.delete(socket.id);
+      
+      // If the user has no more connected sockets, remove the user entirely
+      if (userSockets.size === 0) {
+        userSocketMap.delete(userId);
+      }
+      
+      // Clean up the reverse mapping
+      socketUserMap.delete(socket.id);
+      
+      // Update the user count
+      io.emit("user_count", userSocketMap.size);
+    }
+    
     console.log("User disconnected");
   });
 });
