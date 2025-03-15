@@ -2,8 +2,8 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 
 const port = process.env.PORT || 3001;  // Use dynamic port for deployment
-const userSocketMap = new Map();
-const socketUserMap = new Map();
+const socketUserMap = new Map(); // socketId -> userId
+const roomUsers = new Map(); // roomId -> Set of userIds
 
 const httpServer = createServer();
 const io = new Server(httpServer, {
