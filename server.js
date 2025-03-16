@@ -18,18 +18,20 @@ const io = new Server(httpServer, {
 
 io.on("connection", (socket) => {
   let currentRoom = "";
-  
+
   // Handle joining a room
   socket.on("joinRoom", ({ userId, roomId }) => {
     if (!userId || !roomId) return;
 
     socketUserMap.set(socket.id, userId);
+
     // Leave previous room if exists
     if (currentRoom) {
       socket.leave(currentRoom);
       if (roomUsers.has(currentRoom)) {
         roomUsers.get(currentRoom).delete(userId);
         io.to(currentRoom).emit("user_count", roomUsers.get(currentRoom).size);
+        io.to(currentRoom).emit("listofusers", Array.from(roomUsers.get(currentRoom)));
       }
     }
 
@@ -42,8 +44,9 @@ io.on("connection", (socket) => {
     }
     roomUsers.get(roomId).add(userId);
 
+    // Emit updated user count and list to all in the room
     io.to(roomId).emit("user_count", roomUsers.get(roomId).size);
-    console.log(`User ${userId} joined room: ${roomId}`);
+    io.to(roomId).emit("listofusers", Array.from(roomUsers.get(roomId)));
 
     io.to(roomId).emit("message", {
       roomId,
@@ -72,9 +75,15 @@ io.on("connection", (socket) => {
       if (roomUsers.has(currentRoom)) {
         roomUsers.get(currentRoom).delete(userId);
         io.to(currentRoom).emit("user_count", roomUsers.get(currentRoom).size);
+        io.to(currentRoom).emit("listofusers", Array.from(roomUsers.get(currentRoom)));
+        io.to(currentRoom).emit("message", {
+          roomId: currentRoom,
+          username: "Server",
+          message: `User ${userId} left room ${currentRoom}`,
+        });
       }
     }
-    console.log(`User ${userId} disconnected`);
+    socketUserMap.delete(socket.id); // Clean up socketUserMap
   });
 });
 
